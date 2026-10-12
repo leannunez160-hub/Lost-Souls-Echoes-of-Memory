@@ -1,0 +1,1891 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Lost Souls: Echoes of Memory</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --transition-fast: 150ms;
+            --transition-normal: 300ms;
+            --transition-slow: 500ms;
+            --ease-out: cubic-bezier(0.0, 0, 0.2, 1);
+            --ease-bounce: cubic-bezier(0.68, -0.6, 0.32, 1.6);
+            --space-xs: 8px;
+            --space-sm: 16px;
+            --space-md: 24px;
+            --space-lg: 32px;
+            --space-xl: 48px;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translate(0, 0); }
+            10%, 30%, 50%, 70%, 90% { transform: translate(-10px, 0); }
+            20%, 40%, 60%, 80% { transform: translate(10px, 0); }
+        }
+
+        .shake {
+            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            touch-action: none;
+            -ms-touch-action: none;
+            font-family: 'Inter', sans-serif;
+        }
+
+        #game-world {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background: #1a0a2e;
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+        }
+
+        .header {
+            width: 100%;
+            padding: 24px 24px 0 24px;
+            box-sizing: border-box;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .btn-pause {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 20px;
+            transition: background 0.2s;
+            z-index: 101;
+        }
+
+        .btn-pause:active {
+            transform: scale(0.9);
+        }
+
+        .btn-settings {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 25px;
+            transition: background 0.2s, transform 0.2s;
+            z-index: 101;
+        }
+
+        .btn-settings:active {
+            transform: scale(0.9) rotate(20deg);
+        }
+
+        .settings-panel {
+            width: min(560px, 100%);
+            box-sizing: border-box;
+            background: rgba(32, 18, 62, 0.98);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            border-radius: 28px;
+            padding: 32px;
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.45);
+        }
+
+        .settings-panel h2 {
+            margin: 0 0 28px;
+            color: #fff;
+            font-family: 'Fredoka', sans-serif;
+            font-size: 34px;
+        }
+
+        .setting-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            padding: 20px 0;
+            color: #e8d5f5;
+            font-size: 21px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .setting-row input[type="range"] {
+            width: 230px;
+            accent-color: #7dffb3;
+        }
+
+        .setting-value {
+            min-width: 55px;
+            color: #7dffb3;
+            text-align: right;
+            font-weight: 600;
+        }
+
+        .audio-toggle {
+            width: 68px;
+            height: 38px;
+            border: 0;
+            border-radius: 24px;
+            background: #5b4cc4;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .audio-toggle::after {
+            content: '';
+            position: absolute;
+            width: 28px;
+            height: 28px;
+            top: 5px;
+            left: 5px;
+            border-radius: 50%;
+            background: white;
+            transition: transform 0.2s;
+        }
+
+        .audio-toggle.on { background: #00b894; }
+        .audio-toggle.on::after { transform: translateX(30px); }
+
+        .lives {
+            font-size: 28px;
+            display: flex;
+            gap: 4px;
+            filter: drop-shadow(0 0 5px rgba(255, 50, 50, 0.4));
+        }
+
+        .score {
+            font-family: 'Fredoka', sans-serif;
+            font-size: 28px;
+            color: #e8d5f5;
+            text-shadow: 0 0 10px rgba(200, 150, 255, 0.5);
+        }
+
+        .soul-container {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: opacity var(--transition-normal);
+            pointer-events: none;
+        }
+
+        .soul-avatar {
+            width: 140px;
+            height: 140px;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            filter: drop-shadow(0 0 15px rgba(255, 107, 107, 0.4));
+            margin-bottom: 10px;
+            animation: float 4s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .soul-name {
+            font-family: 'Fredoka', sans-serif;
+            font-size: 24px;
+            color: #ffb3b3;
+            text-shadow: 0 0 8px rgba(255, 107, 107, 0.5);
+        }
+
+        .soul-dialogue {
+            font-style: italic;
+            font-size: 18px;
+            color: #e8d5f5;
+            margin-top: 5px;
+            max-width: 80%;
+            text-align: center;
+        }
+
+        .progress-container {
+            width: 60%;
+            height: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            margin-top: 15px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .timer-container {
+            position: absolute;
+            top: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200px;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+
+        .timer-container.visible {
+            opacity: 1;
+        }
+
+        .timer-bar {
+            height: 100%;
+            width: 100%;
+            background: #ff7d7d;
+            box-shadow: 0 0 10px rgba(255, 125, 125, 0.6);
+            transition: width 0.1s linear;
+        }
+
+        #effects-canvas {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .title-area {
+            text-align: center;
+            margin-top: 10px;
+            pointer-events: none;
+        }
+
+        .title-area h1 {
+            font-family: 'Fredoka', sans-serif;
+            font-size: 28px;
+            color: #e8d5f5;
+            margin: 0;
+            text-shadow: 0 0 20px rgba(200, 150, 255, 0.4);
+        }
+
+        .title-area .subtitle {
+            font-size: 16px;
+            color: #a78bba;
+            margin-top: 4px;
+        }
+
+        .message-area {
+            margin-top: 20px;
+            text-align: center;
+            min-height: 60px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+        }
+
+        .message-text {
+            font-family: 'Fredoka', sans-serif;
+            font-size: 28px;
+            color: #fff;
+            text-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+            opacity: 0;
+            transition: opacity var(--transition-normal) var(--ease-out);
+        }
+
+        .message-text.visible {
+            opacity: 1;
+        }
+
+        .message-text.success {
+            color: #7dffb3;
+            text-shadow: 0 0 20px rgba(125, 255, 179, 0.5);
+        }
+
+        .message-text.error {
+            color: #ff7d7d;
+            text-shadow: 0 0 20px rgba(255, 125, 125, 0.5);
+        }
+
+        .level-indicator {
+            font-size: 22px;
+            color: #a78bba;
+            margin-top: 8px;
+            opacity: 0;
+            transition: opacity var(--transition-normal) var(--ease-out);
+        }
+
+        .level-indicator.visible {
+            opacity: 1;
+        }
+
+        .circles-container {
+            position: absolute;
+            bottom: 200px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 32px;
+            padding: 24px;
+        }
+
+        .circle-btn {
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            border: 3px solid rgba(255, 255, 255, 0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 42px;
+            color: rgba(255, 255, 255, 0.9);
+            cursor: pointer;
+            transition: transform var(--transition-fast) var(--ease-bounce),
+                        box-shadow var(--transition-normal) var(--ease-out),
+                        border-color var(--transition-normal) var(--ease-out);
+            position: relative;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .circle-btn::after {
+            content: '';
+            position: absolute;
+            inset: -12px;
+            border-radius: 50%;
+            opacity: 0;
+            transition: opacity var(--transition-normal) var(--ease-out);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .circle-btn.glow {
+            transform: scale(1.15);
+            border-color: rgba(255, 255, 255, 0.9);
+        }
+
+        .circle-btn.glow::after {
+            opacity: 1;
+        }
+
+        .circle-btn.pressed {
+            transform: scale(0.9);
+        }
+
+        .circle-btn:active {
+            transform: scale(0.92);
+        }
+
+        .circle-btn.disabled {
+            opacity: 0.5;
+            cursor: default;
+        }
+
+        /* Individual circle colors */
+        .circle-red { background: radial-gradient(circle at 40% 40%, #ff6b6b, #c0392b); }
+        .circle-red.glow { box-shadow: 0 0 40px 15px rgba(255, 107, 107, 0.6); }
+        .circle-red::after { background: radial-gradient(circle, rgba(255, 107, 107, 0.3), transparent 70%); }
+
+        .circle-blue { background: radial-gradient(circle at 40% 40%, #74b9ff, #2980b9); }
+        .circle-blue.glow { box-shadow: 0 0 40px 15px rgba(116, 185, 255, 0.6); }
+        .circle-blue::after { background: radial-gradient(circle, rgba(116, 185, 255, 0.3), transparent 70%); }
+
+        .circle-green { background: radial-gradient(circle at 40% 40%, #55efc4, #00b894); }
+        .circle-green.glow { box-shadow: 0 0 40px 15px rgba(85, 239, 196, 0.6); }
+        .circle-green::after { background: radial-gradient(circle, rgba(85, 239, 196, 0.3), transparent 70%); }
+
+        .circle-yellow { background: radial-gradient(circle at 40% 40%, #ffeaa7, #f39c12); }
+        .circle-yellow.glow { box-shadow: 0 0 40px 15px rgba(255, 234, 167, 0.6); }
+        .circle-yellow::after { background: radial-gradient(circle, rgba(255, 234, 167, 0.3), transparent 70%); }
+
+        .circle-purple { background: radial-gradient(circle at 40% 40%, #a29bfe, #6c5ce7); }
+        .circle-purple.glow { box-shadow: 0 0 40px 15px rgba(162, 155, 254, 0.6); }
+        .circle-purple::after { background: radial-gradient(circle, rgba(162, 155, 254, 0.3), transparent 70%); }
+
+        .circle-orange { background: radial-gradient(circle at 40% 40%, #fab1a0, #e17055); }
+        .circle-orange.glow { box-shadow: 0 0 40px 15px rgba(250, 177, 160, 0.6); }
+        .circle-orange::after { background: radial-gradient(circle, rgba(250, 177, 160, 0.3), transparent 70%); }
+
+        .phase-label {
+            position: absolute;
+            bottom: 120px;
+            font-family: 'Fredoka', sans-serif;
+            font-size: 24px;
+            color: #a78bba;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            opacity: 0;
+            transition: opacity var(--transition-normal) var(--ease-out);
+        }
+
+        .phase-label.visible {
+            opacity: 1;
+        }
+
+        .overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(10, 5, 20, 0.9);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity var(--transition-normal);
+            text-align: center;
+            padding: 40px;
+        }
+
+        .overlay.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        #story-overlay {
+            background: radial-gradient(circle at center, rgba(30, 15, 60, 0.95), rgba(10, 5, 20, 1));
+        }
+
+        #story-overlay .soul-avatar {
+            width: 240px;
+            height: 240px;
+            margin-bottom: 30px;
+            filter: drop-shadow(0 0 30px rgba(255, 255, 255, 0.3));
+        }
+
+        #story-overlay h2 {
+            color: #fff;
+            font-size: 36px;
+            margin-bottom: 10px;
+            text-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+        }
+
+        #story-overlay .story-text {
+            color: #e8d5f5;
+            font-size: 22px;
+            line-height: 1.6;
+            max-width: 80%;
+            margin-bottom: 40px;
+            font-style: italic;
+        }
+
+        .btn-continue {
+            padding: 16px 48px;
+            background: #7dffb3;
+            color: #1a0a2e;
+            border: none;
+            border-radius: 30px;
+            font-family: 'Fredoka', sans-serif;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(125, 255, 179, 0.4);
+            transition: transform 0.2s, background 0.2s;
+            font-weight: 700;
+        }
+
+        .btn-continue:active {
+            transform: scale(0.95);
+        }
+
+        .btn-restart {
+            padding: 16px 48px;
+            background: #6c5ce7;
+            color: white;
+            border: none;
+            border-radius: 30px;
+            font-family: 'Fredoka', sans-serif;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(108, 92, 231, 0.4);
+            transition: transform 0.2s, background 0.2s;
+        }
+
+        .btn-restart:active {
+            transform: scale(0.95);
+            background: #5b4cc4;
+        }
+
+        #intro-overlay {
+            position: absolute;
+            inset: 0;
+            background: #0a0514;
+            z-index: 200;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 1s ease-in-out;
+            padding: 40px;
+            text-align: center;
+        }
+
+        #intro-overlay.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .intro-text {
+            color: #e8d5f5;
+            font-size: 24px;
+            text-align: center;
+            max-width: 80%;
+            min-height: 80px;
+            margin-bottom: 30px;
+            font-style: italic;
+            opacity: 0;
+            transition: opacity 0.8s ease-in-out;
+        }
+
+        .intro-text.show {
+            opacity: 1;
+        }
+
+        .traveler-container {
+            width: 300px;
+            height: 300px;
+            position: relative;
+            margin-bottom: 40px;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 1.5s ease-out, transform 1.5s ease-out;
+        }
+
+        .traveler-container.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .traveler-img {
+            width: 100%;
+            height: 100%;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            filter: drop-shadow(0 0 20px rgba(162, 155, 254, 0.6));
+            animation: traveler-float 6s ease-in-out infinite;
+        }
+
+        @keyframes traveler-float {
+            0%, 100% { transform: translateY(0) scale(1); filter: drop-shadow(0 0 20px rgba(162, 155, 254, 0.6)); }
+            50% { transform: translateY(-15px) scale(1.02); filter: drop-shadow(0 0 30px rgba(162, 155, 254, 0.8)); }
+        }
+
+        .btn-start-journey {
+            padding: 18px 56px;
+            background: #6c5ce7;
+            color: white;
+            border: none;
+            border-radius: 40px;
+            font-family: 'Fredoka', sans-serif;
+            font-size: 26px;
+            cursor: pointer;
+            box-shadow: 0 0 20px rgba(108, 92, 231, 0.5);
+            opacity: 0;
+            transition: opacity 1s, transform 0.2s, background 0.2s;
+            font-weight: 700;
+            pointer-events: none;
+        }
+
+        .btn-start-journey.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .btn-start-journey:active {
+            transform: scale(0.95);
+        }
+
+        #instructions-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(10, 5, 20, 0.95);
+            z-index: 190;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease;
+            color: #fff;
+            text-align: center;
+            padding: 40px;
+        }
+
+        #instructions-overlay.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .instruction-step {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 30px;
+            opacity: 0;
+            transform: translateX(-20px);
+            transition: all 0.5s ease;
+        }
+
+        .instruction-step.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .step-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+            border: 2px solid #6c5ce7;
+        }
+
+        .step-text {
+            text-align: left;
+        }
+
+        .step-text h3 {
+            margin: 0;
+            font-family: 'Fredoka', sans-serif;
+            color: #7dffb3;
+        }
+
+        .step-text p {
+            margin: 4px 0 0 0;
+            color: #a78bba;
+        }
+
+        #soul-intro-overlay {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at center, #1e0f3c, #0a0514);
+            z-index: 180;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.8s ease;
+            padding: 40px;
+        }
+
+        #soul-intro-overlay.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .encounter-area {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 600px;
+            margin-bottom: 40px;
+        }
+
+        .encounter-actor {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 180px;
+        }
+
+        .actor-avatar {
+            width: 160px;
+            height: 160px;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.2));
+            animation: float 4s ease-in-out infinite;
+        }
+
+        .actor-name {
+            margin-top: 10px;
+            font-family: 'Fredoka', sans-serif;
+            font-size: 20px;
+            color: #a78bba;
+        }
+
+        .dialogue-bubble {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 24px;
+            color: #e8d5f5;
+            font-style: italic;
+            font-size: 20px;
+            text-align: center;
+            max-width: 80%;
+            margin-bottom: 40px;
+            position: relative;
+        }
+
+        .dialogue-bubble::before {
+            content: '“';
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-size: 40px;
+            color: rgba(255, 255, 255, 0.1);
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .circle-btn, .message-text, .level-indicator, .phase-label {
+                transition: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-world">
+        <div class="header">
+            <div class="header-left">
+                <button class="btn-pause" id="pause-btn" aria-label="Pause game">II</button>
+                <button class="btn-settings" id="settings-btn" aria-label="Open audio settings">⚙</button>
+                <div class="lives" id="lives"></div>
+            </div>
+            <div class="score" id="score">✨ 0</div>
+        </div>
+
+        <canvas id="effects-canvas"></canvas>
+
+        <div class="timer-container" id="timer-container">
+            <div class="timer-bar" id="timer-bar"></div>
+        </div>
+
+        <div class="title-area">
+            <h1>Lost Souls</h1>
+            <div class="subtitle">Echoes of Memory</div>
+        </div>
+
+        <div class="soul-container" id="soul-container">
+            <div class="soul-avatar" id="soul-avatar"></div>
+            <div class="soul-name" id="soul-name">Mira</div>
+            <div class="soul-dialogue" id="soul-dialogue">"Help me remember..."</div>
+            <div class="progress-container">
+                <div class="progress-bar" id="progress-bar"></div>
+            </div>
+        </div>
+
+        <div class="message-area">
+            <div class="message-text" id="message"></div>
+            <div class="level-indicator" id="level-indicator"></div>
+        </div>
+
+        <div class="circles-container" id="circles-container"></div>
+
+        <div class="phase-label" id="phase-label"></div>
+
+        <div class="overlay" id="game-over-overlay">
+            <h2>Memory Lost</h2>
+            <p id="final-score">Score: 0</p>
+            <button class="btn-restart" id="restart-btn">Try Again</button>
+        </div>
+
+        <div class="overlay" id="story-overlay">
+            <div class="soul-avatar" id="story-avatar"></div>
+            <h2 id="story-title">Memory Restored</h2>
+            <div class="story-text" id="story-text">...</div>
+            <button class="btn-continue" id="continue-btn">Continue Journey</button>
+        </div>
+
+        <div class="overlay" id="pause-overlay">
+            <h2>Paused</h2>
+            <p>Take a breath, Traveler.</p>
+            <button class="btn-continue" id="resume-btn">Resume</button>
+        </div>
+
+        <div class="overlay" id="settings-overlay">
+            <div class="settings-panel">
+                <h2>Audio Settings</h2>
+                <div class="setting-row">
+                    <span>Sound Effects</span>
+                    <button class="audio-toggle on" id="sound-toggle" aria-label="Toggle sound effects" aria-pressed="true"></button>
+                </div>
+                <div class="setting-row">
+                    <span>Volume</span>
+                    <input id="volume-slider" type="range" min="0" max="100" step="1" value="75" aria-label="Volume">
+                    <span class="setting-value" id="volume-value">75%</span>
+                </div>
+                <button class="btn-continue" id="settings-close-btn">Done</button>
+            </div>
+        </div>
+
+        <div id="intro-overlay">
+            <div class="intro-text" id="intro-text"></div>
+            <div class="traveler-container" id="traveler-container">
+                <div class="traveler-img" id="traveler-img"></div>
+            </div>
+            <button class="btn-start-journey" id="start-journey-btn">Begin Journey</button>
+        </div>
+
+        <div id="instructions-overlay">
+            <h2 style="font-family: 'Fredoka', sans-serif; font-size: 32px; margin-bottom: 40px;">How to Restore Memories</h2>
+            <div class="instruction-step" id="step-1">
+                <div class="step-icon">👁️</div>
+                <div class="step-text">
+                    <h3>WATCH</h3>
+                    <p>Observe the sequence of glowing fragments.</p>
+                </div>
+            </div>
+            <div class="instruction-step" id="step-2">
+                <div class="step-icon">🧠</div>
+                <div class="step-text">
+                    <h3>REMEMBER</h3>
+                    <p>Hold the pattern in your mind.</p>
+                </div>
+            </div>
+            <div class="instruction-step" id="step-3">
+                <div class="step-icon">👆</div>
+                <div class="step-text">
+                    <h3>REPEAT</h3>
+                    <p>Tap the circles in the exact same order.</p>
+                </div>
+            </div>
+            <button class="btn-continue" id="instructions-btn" style="margin-top: 20px;">I Understand</button>
+        </div>
+
+        <div id="soul-intro-overlay">
+            <div class="encounter-area">
+                <div class="encounter-actor">
+                    <div class="actor-avatar" id="intro-traveler-avatar"></div>
+                    <div class="actor-name">Traveler</div>
+                </div>
+                <div style="font-size: 40px; color: rgba(255,255,255,0.2);">✨</div>
+                <div class="encounter-actor">
+                    <div class="actor-avatar" id="intro-soul-avatar"></div>
+                    <div class="actor-name" id="intro-soul-name">Mira</div>
+                </div>
+            </div>
+            <div class="dialogue-bubble" id="intro-dialogue-text">...</div>
+            <button class="btn-continue" id="soul-intro-btn">Help the Soul</button>
+        </div>
+    </div>
+
+    <script src="./asset_map.js"></script>
+    <script>
+        /*
+         * Lost Souls: Echoes of Memory
+         * A memory sequence game where players watch colored circles glow
+         * in sequence and must reproduce the pattern by tapping.
+         */
+
+        const fallbackGameConfig = {
+            sequenceLength: 2,
+            animationSpeed: 600,
+            pauseBetween: 300,
+            startingLives: 3,
+            pointsPerCircle: 100,
+            pointsPerSequence: 500,
+            levelsPerChapter: 5,
+            difficultyPreset: 'normal',
+            timeLimit: 10,
+            particleIntensity: 1
+        };
+
+        window.gameConfig = window.gameConfig || fallbackGameConfig;
+        window.mode = window.mode || 'play';
+
+        const assetCatalog = typeof assets !== 'undefined' ? assets : {};
+        window.lib = window.lib || {
+            getAsset(id) {
+                return assetCatalog[id];
+            },
+            log() {},
+            showGameParameters() {},
+            addPlayerScoreToLeaderboard() {
+                return Promise.resolve({ entries: [], userRank: null, success: true });
+            },
+            getTopNEntriesFromLeaderboard() {
+                return Promise.resolve({ entries: [], userRank: null, success: true });
+            },
+            saveUserGameState(state) {
+                return Promise.resolve({ userId: 'local', gameId: 'lost-souls', state, success: true });
+            },
+            getUserGameState() {
+                return Promise.resolve({ userId: 'local', gameId: 'lost-souls', state: null, success: true });
+            },
+            deleteUserGameState() {
+                return Promise.resolve({ success: true });
+            },
+            shouldUseTouchControls() {
+                return false;
+            },
+            getAnimationPlayer() {
+                return null;
+            },
+            preloadAnimation() {
+                return Promise.resolve();
+            },
+            llm: async function() {
+                return { text: '' };
+            }
+        };
+
+        if (!window.__lostSoulsAutostarted) {
+            window.__lostSoulsAutostarted = true;
+            run(window.mode || 'play');
+        }
+
+        async function run(mode) {
+            const config = window.gameConfig;
+
+            // DOM references
+            const gameWorld = document.getElementById('game-world');
+            const circlesContainer = document.getElementById('circles-container');
+            const messageEl = document.getElementById('message');
+            const levelIndicatorEl = document.getElementById('level-indicator');
+            const livesEl = document.getElementById('lives');
+            const scoreEl = document.getElementById('score');
+            const phaseLabelEl = document.getElementById('phase-label');
+            const soulAvatarEl = document.getElementById('soul-avatar');
+            const soulNameEl = document.getElementById('soul-name');
+            const soulDialogueEl = document.getElementById('soul-dialogue');
+            const progressBarEl = document.getElementById('progress-bar');
+            const gameOverOverlay = document.getElementById('game-over-overlay');
+            const restartBtn = document.getElementById('restart-btn');
+            const finalScoreEl = document.getElementById('final-score');
+            
+            const storyOverlay = document.getElementById('story-overlay');
+            const storyAvatarEl = document.getElementById('story-avatar');
+            const storyTitleEl = document.getElementById('story-title');
+            const storyTextEl = document.getElementById('story-text');
+            const continueBtn = document.getElementById('continue-btn');
+
+            const introOverlay = document.getElementById('intro-overlay');
+            const introTextEl = document.getElementById('intro-text');
+            const travelerContainer = document.getElementById('traveler-container');
+            const travelerImgEl = document.getElementById('traveler-img');
+            const startJourneyBtn = document.getElementById('start-journey-btn');
+
+            // Unique instance to prevent async leakage
+            const instanceId = Math.random();
+            window.lostSoulsInstanceId = instanceId;
+            const isValid = () => window.lostSoulsInstanceId === instanceId;
+
+            const safeTimeout = (fn, delay) => {
+                const t = setTimeout(() => {
+                    if (isValid()) fn();
+                }, delay);
+                window.lostSoulsTimeouts = window.lostSoulsTimeouts || [];
+                window.lostSoulsTimeouts.push(t);
+                return t;
+            };
+
+            const pauseBtn = document.getElementById('pause-btn');
+            const pauseOverlay = document.getElementById('pause-overlay');
+            const resumeBtn = document.getElementById('resume-btn');
+            const settingsBtn = document.getElementById('settings-btn');
+            const settingsOverlay = document.getElementById('settings-overlay');
+            const soundToggle = document.getElementById('sound-toggle');
+            const volumeSlider = document.getElementById('volume-slider');
+            const volumeValue = document.getElementById('volume-value');
+            const settingsCloseBtn = document.getElementById('settings-close-btn');
+            const timerContainer = document.getElementById('timer-container');
+            const timerBar = document.getElementById('timer-bar');
+
+            const instructionsOverlay = document.getElementById('instructions-overlay');
+            const instructionsBtn = document.getElementById('instructions-btn');
+            let instructionsSeen = false;
+            const soulIntroOverlay = document.getElementById('soul-intro-overlay');
+            const introSoulAvatar = document.getElementById('intro-soul-avatar');
+            const introTravelerAvatar = document.getElementById('intro-traveler-avatar');
+            const introSoulName = document.getElementById('intro-soul-name');
+            const introDialogueText = document.getElementById('intro-dialogue-text');
+            const soulIntroBtn = document.getElementById('soul-intro-btn');
+
+            // Cleanup previous runs to prevent lag and duplicate loops
+            if (window.lostSoulsInterval) clearInterval(window.lostSoulsInterval);
+            if (window.lostSoulsAnimFrame) cancelAnimationFrame(window.lostSoulsAnimFrame);
+            if (window.lostSoulsTimeouts) window.lostSoulsTimeouts.forEach(clearTimeout);
+            window.lostSoulsTimeouts = [];
+
+            // Reset intro/instruction elements
+            introOverlay.dataset.running = 'false';
+            introTextEl.classList.remove('show');
+            travelerContainer.classList.remove('show');
+            startJourneyBtn.classList.remove('show');
+            const steps = ['step-1', 'step-2', 'step-3'];
+            steps.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.classList.remove('show');
+            });
+            
+            // Reset all overlays
+            [introOverlay, instructionsOverlay, soulIntroOverlay, storyOverlay, gameOverOverlay, pauseOverlay, settingsOverlay].forEach(o => {
+                if (o) o.classList.remove('visible');
+            });
+            // Audio context and cache
+            let audioCtx = null;
+            let audioGain = null;
+            let soundEnabled = true;
+            let soundVolume = 0.75;
+            const audioCache = {};
+
+            function getAudioCtx() {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    audioGain = audioCtx.createGain();
+                    audioGain.gain.value = soundVolume;
+                    audioGain.connect(audioCtx.destination);
+                }
+                return audioCtx;
+            }
+
+            async function loadAudio(id) {
+                const asset = lib.getAsset(id);
+                if (!asset) return null;
+                try {
+                    const response = await fetch(asset.url);
+                    const arrayBuffer = await response.arrayBuffer();
+                    const audioBuffer = await getAudioCtx().decodeAudioData(arrayBuffer);
+                    audioCache[id] = audioBuffer;
+                    return audioBuffer;
+                } catch (e) {
+                    console.error(`Error loading audio ${id}:`, e);
+                    return null;
+                }
+            }
+
+            function playBuffer(buffer) {
+                if (!buffer || !soundEnabled) return;
+                const ctx = getAudioCtx();
+                if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+                const source = ctx.createBufferSource();
+                source.buffer = buffer;
+                source.connect(audioGain);
+                source.start(0);
+            }
+
+            // Circle definitions
+            const circleData = [
+                { id: 0, color: 'red', symbol: '✦', assetId: 'circle_sound_red' },
+                { id: 1, color: 'blue', symbol: '☾', assetId: 'circle_sound_blue' },
+                { id: 2, color: 'green', symbol: '◇', assetId: 'circle_sound_green' },
+                { id: 3, color: 'yellow', symbol: '✧', assetId: 'circle_sound_yellow' },
+                { id: 4, color: 'purple', symbol: '★', assetId: 'circle_sound_purple' },
+                { id: 5, color: 'orange', symbol: '◆', assetId: 'circle_sound_orange' }
+            ];
+
+            // Set background
+            const bgAsset = lib.getAsset('ethereal_background');
+            if (bgAsset) {
+                document.getElementById('game-world').style.backgroundImage = `url(${bgAsset.url})`;
+            }
+            // Difficulty calculation
+            function getEffectiveSpeed() {
+                const difficultyMultiplier = { 'easy': 1.2, 'normal': 1, 'hard': 0.7 }[config.difficultyPreset || 'normal'];
+                const chapterScaling = 1 - (currentChapter - 1) * 0.15; // 15% faster per chapter
+                return config.animationSpeed * difficultyMultiplier * chapterScaling;
+            }
+
+            function getEffectivePause() {
+                const difficultyMultiplier = { 'easy': 1.2, 'normal': 1, 'hard': 0.7 }[config.difficultyPreset || 'normal'];
+                const chapterScaling = 1 - (currentChapter - 1) * 0.15;
+                return config.pauseBetween * difficultyMultiplier * chapterScaling;
+            }
+
+            function triggerScreenShake() {
+                gameWorld.classList.add('shake');
+                setTimeout(() => gameWorld.classList.remove('shake'), 500);
+            }
+
+            // Runtime state
+            let currentLevel = 1;
+            let score = 0;
+            let lives = config.startingLives;
+            let currentSequence = [];
+            let playerInput = [];
+            let phase = 'idle'; // 'idle', 'watch', 'repeat', 'paused', 'gameover', 'story'
+            let circleElements = [];
+            let isPaused = false;
+            let previousPhase = 'idle';
+
+            // Timer state
+            let timerInterval = null;
+            let timeLeft = 0;
+            let maxTime = 0;
+
+            // Particles
+            const canvas = document.getElementById('effects-canvas');
+            const ctx = canvas.getContext('2d');
+            let particles = [];
+            
+            function resizeCanvas() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+            window.onresize = resizeCanvas;
+            resizeCanvas();
+
+            class Particle {
+                constructor(x, y, color) {
+                    this.x = x;
+                    this.y = y;
+                    this.color = color;
+                    this.size = Math.random() * 8 + 4;
+                    this.speedX = Math.random() * 6 - 3;
+                    this.speedY = Math.random() * 6 - 3;
+                    this.alpha = 1;
+                    this.decay = Math.random() * 0.02 + 0.01;
+                }
+                update() {
+                    this.x += this.speedX;
+                    this.y += this.speedY;
+                    this.alpha -= this.decay;
+                }
+                draw() {
+                    ctx.save();
+                    ctx.globalAlpha = this.alpha;
+                    ctx.fillStyle = this.color;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                }
+            }
+
+            function spawnParticles(x, y, color, count = 20) {
+                const intensity = config.particleIntensity || 1;
+                for (let i = 0; i < count * intensity; i++) {
+                    particles.push(new Particle(x, y, color));
+                }
+            }
+
+            function updateParticles() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                for (let i = particles.length - 1; i >= 0; i--) {
+                    particles[i].update();
+                    particles[i].draw();
+                    if (particles[i].alpha <= 0) {
+                        particles.splice(i, 1);
+                    }
+                }
+                window.lostSoulsAnimFrame = requestAnimationFrame(updateParticles);
+            }
+            updateParticles();
+
+            // Chapter state
+            let currentChapter = 1;
+            let levelsCompletedInChapter = 0;
+
+            const soulData = {
+                1: {
+                    name: 'Mira',
+                    avatar: 'soul_mira',
+                    introDialogue: "I remember a garden... and waiting. But for who? Everything is slipping away into the void.",
+                    dialogues: [
+                        "Help me remember...",
+                        "I see fragments of light...",
+                        "A distant warmth...",
+                        "The memory is returning...",
+                        "I was waiting for someone..."
+                    ],
+                    finalStory: "I remember now... the day they left. I promised to wait, and I did. My heart is finally at peace. Thank you, Traveler.",
+                    theme: '#ffb3b3'
+                },
+                2: {
+                    name: 'Daniel',
+                    avatar: 'soul_daniel',
+                    introDialogue: "I carried so many heavy things... but now I feel so light it's terrifying. Where is my burden?",
+                    dialogues: [
+                        "Who am I looking for?",
+                        "The house was so quiet...",
+                        "I had a promise to keep...",
+                        "My children... their faces...",
+                        "I should have been there."
+                    ],
+                    finalStory: "I see them now. My family. I was so burdened by work that I forgot to just... be with them. But I can tell them I love them now.",
+                    theme: '#74b9ff'
+                },
+                3: {
+                    name: 'Elena',
+                    avatar: 'soul_elena',
+                    introDialogue: "I was playing a game... but the rules changed. Now I'm just hiding and no one is seeking.",
+                    dialogues: [
+                        "Is it summer yet?",
+                        "The garden smelled of jasmine...",
+                        "A small toy... where did it go?",
+                        "I was laughing, wasn't I?",
+                        "Wait, I remember the tree!"
+                    ],
+                    finalStory: "The jasmine garden! I spent my whole life searching for that one perfect afternoon. It wasn't lost, it was just waiting for me here.",
+                    theme: '#55efc4'
+                },
+                4: {
+                    name: 'Tomas',
+                    avatar: 'soul_tomas',
+                    introDialogue: "The silence here is louder than the words I never spoke. I have a letter... but the ink is dry.",
+                    dialogues: [
+                        "The letter... it's still unsealed.",
+                        "I never sent it...",
+                        "Ink on my fingers...",
+                        "So many things unsaid...",
+                        "Why did I stay silent?"
+                    ],
+                    finalStory: "I was afraid of the truth. But now I remember every word I wrote. The letter is finally finished, even if it never reached the mailbox.",
+                    theme: '#a29bfe'
+                },
+                5: {
+                    name: 'The Unknown',
+                    avatar: 'soul_unknown',
+                    introDialogue: "Traveler... you look at me as if you see yourself. Tell me, what have we both forgotten?",
+                    dialogues: [
+                        "Your face... it's familiar.",
+                        "Have we walked this path together?",
+                        "The reflection is blurred...",
+                        "We are echoes of the same soul...",
+                        "The truth is almost here."
+                    ],
+                    finalStory: "I am the part of you that you left behind to find your way here. We are one and the same. Now, we can both go home.",
+                    theme: '#ffffff'
+                }
+            };
+
+            // Play a sound for a circle
+            function playCircleSound(index) {
+                const id = circleData[index].assetId;
+                playBuffer(audioCache[id]);
+            }
+
+            function playSuccessSound() {
+                playBuffer(audioCache['success_sound']);
+            }
+
+            function playRestorationSound() {
+                playBuffer(audioCache['memory_restoration_sound']);
+            }
+
+            function playErrorSound() {
+                playBuffer(audioCache['failure_sound']);
+            }
+
+            // Build circle buttons
+            function buildCircles() {
+                circlesContainer.innerHTML = '';
+                circleElements = [];
+                circleData.forEach((cd, i) => {
+                    const el = document.createElement('div');
+                    el.className = `circle-btn circle-${cd.color}`;
+                    el.textContent = cd.symbol;
+                    el.dataset.index = i;
+                    el.addEventListener('pointerdown', (e) => {
+                        e.preventDefault();
+                        onCircleTap(i);
+                    });
+                    circlesContainer.appendChild(el);
+                    circleElements.push(el);
+                });
+            }
+
+            // Update UI
+            function updateLives() {
+                livesEl.textContent = '❤️'.repeat(lives) + '🖤'.repeat(Math.max(0, config.startingLives - lives));
+            }
+
+            function updateScore() {
+                scoreEl.textContent = `✨ ${score}`;
+            }
+
+            function updateSoulDisplay() {
+                const soul = soulData[currentChapter];
+                if (!soul) return;
+
+                soulNameEl.textContent = soul.name;
+                soulNameEl.style.color = soul.theme;
+                soulNameEl.style.textShadow = `0 0 8px ${soul.theme}80`;
+                
+                const asset = lib.getAsset(soul.avatar);
+                if (asset) {
+                    soulAvatarEl.style.backgroundImage = `url(${asset.url})`;
+                }
+                
+                // Update progress bar color
+                progressBarEl.style.background = `linear-gradient(90deg, ${soul.theme}, #fff)`;
+                progressBarEl.style.boxShadow = `0 0 10px ${soul.theme}99`;
+                
+                // Update dialogue based on progress
+                const dialogueIndex = Math.min(levelsCompletedInChapter, soul.dialogues.length - 1);
+                soulDialogueEl.textContent = `"${soul.dialogues[dialogueIndex]}"`;
+
+                // Update progress bar
+                const progress = (levelsCompletedInChapter / config.levelsPerChapter) * 100;
+                progressBarEl.style.width = `${progress}%`;
+            }
+
+            function showMessage(text, type) {
+                messageEl.textContent = text;
+                messageEl.className = 'message-text visible' + (type ? ` ${type}` : '');
+            }
+
+            function hideMessage() {
+                messageEl.className = 'message-text';
+            }
+
+            function showLevel() {
+                levelIndicatorEl.textContent = `Level ${currentLevel}`;
+                levelIndicatorEl.className = 'level-indicator visible';
+            }
+
+            function showPhase(text) {
+                phaseLabelEl.textContent = text;
+                phaseLabelEl.className = 'phase-label visible';
+            }
+
+            function hidePhase() {
+                phaseLabelEl.className = 'phase-label';
+            }
+
+            // Generate sequence
+            function generateSequence() {
+                const len = config.sequenceLength + currentLevel - 1;
+                const seq = [];
+                for (let i = 0; i < len; i++) {
+                    seq.push(Math.floor(Math.random() * 6));
+                }
+                return seq;
+            }
+
+            // Glow a circle
+            function glowCircle(index) {
+                return new Promise(resolve => {
+                    if (!isValid()) return;
+                    const el = circleElements[index];
+                    const color = soulData[currentChapter].theme;
+                    
+                    const rect = el.getBoundingClientRect();
+                    spawnParticles(rect.left + rect.width/2, rect.top + rect.height/2, color, 10);
+
+                    el.classList.add('glow');
+                    playCircleSound(index);
+                    safeTimeout(() => {
+                        el.classList.remove('glow');
+                        safeTimeout(resolve, getEffectivePause());
+                    }, getEffectiveSpeed());
+                });
+            }
+
+            // Play watch phase
+            async function playSequence() {
+                if (isPaused || !isValid()) return;
+                phase = 'watch';
+                showPhase('WATCH');
+                hideMessage();
+                showLevel();
+                stopTimer();
+
+                await new Promise(r => safeTimeout(r, 600));
+                if (!isValid()) return;
+
+                for (let i = 0; i < currentSequence.length; i++) {
+                    if (!isValid() || isPaused) break;
+                    await glowCircle(currentSequence[i]);
+                }
+
+                if (!isValid()) return;
+                phase = 'repeat';
+                playerInput = [];
+                showPhase('YOUR TURN');
+                startTimer();
+            }
+
+            // Timer logic
+            function startTimer() {
+                stopTimer();
+                if (currentChapter < 4) {
+                    timerContainer.classList.remove('visible');
+                    return;
+                }
+
+                maxTime = config.timeLimit || 10;
+                timeLeft = maxTime;
+                timerContainer.classList.add('visible');
+                timerBar.style.width = '100%';
+                
+                timerInterval = setInterval(() => {
+                    if (isPaused) return;
+                    timeLeft -= 0.1;
+                    const percent = (timeLeft / maxTime) * 100;
+                    timerBar.style.width = `${percent}%`;
+
+                    if (timeLeft <= 0) {
+                        stopTimer();
+                        onTimeOut();
+                    }
+                }, 100);
+            }
+
+            function stopTimer() {
+                if (timerInterval) clearInterval(timerInterval);
+                timerInterval = null;
+                timerContainer.classList.remove('visible');
+            }
+
+            function onTimeOut() {
+                showMessage('⌛ OUT OF TIME!', 'error');
+                onWrongInput();
+            }
+
+            // Handle player tap
+            function onCircleTap(index) {
+                if (phase !== 'repeat' || isPaused || !isValid()) return;
+
+                const el = circleElements[index];
+                const color = soulData[currentChapter].theme;
+                const rect = el.getBoundingClientRect();
+                spawnParticles(rect.left + rect.width/2, rect.top + rect.height/2, color, 8);
+
+                // Visual + audio feedback
+                el.classList.add('glow');
+                playCircleSound(index);
+                safeTimeout(() => el.classList.remove('glow'), 200);
+
+                playerInput.push(index);
+
+                // Check input
+                const pos = playerInput.length - 1;
+                if (playerInput[pos] !== currentSequence[pos]) {
+                    // Wrong!
+                    onWrongInput();
+                    return;
+                }
+
+                if (playerInput.length === currentSequence.length) {
+                    // Correct!
+                    onCorrectSequence();
+                }
+            }
+
+            function onWrongInput() {
+                phase = 'idle';
+                stopTimer();
+                lives--;
+                updateLives();
+                playErrorSound();
+                triggerScreenShake();
+                showMessage('❌ Wrong sequence!', 'error');
+                hidePhase();
+
+                if (lives <= 0) {
+                    safeTimeout(() => {
+                        finalScoreEl.textContent = `Score: ${score}`;
+                        gameOverOverlay.classList.add('visible');
+                        phase = 'gameover';
+                    }, 1200);
+                } else {
+                    safeTimeout(() => {
+                        showMessage('Try again...', '');
+                        safeTimeout(startLevel, 1500);
+                    }, 1200);
+                }
+            }
+
+            function onCorrectSequence() {
+                phase = 'idle';
+                stopTimer();
+                const levelScore = (currentSequence.length * config.pointsPerCircle) + config.pointsPerSequence;
+                score += levelScore;
+                updateScore();
+                playSuccessSound();
+
+                levelsCompletedInChapter++;
+                updateSoulDisplay();
+
+                // Particle explosion
+                const center = { x: window.innerWidth / 2, y: window.innerHeight * 0.7 };
+                spawnParticles(center.x, center.y, soulData[currentChapter].theme, 50);
+
+                // All circles glow briefly
+                circleElements.forEach(el => el.classList.add('glow'));
+                safeTimeout(() => circleElements.forEach(el => el.classList.remove('glow')), 600);
+
+                showMessage('✨ MEMORY RESTORED! ✨', 'success');
+                hidePhase();
+
+                safeTimeout(() => {
+                    currentLevel++;
+                    // Check for chapter completion
+                    if (levelsCompletedInChapter >= config.levelsPerChapter) {
+                        showStoryScene();
+                    } else {
+                        startLevel();
+                    }
+                }, 2000);
+            }
+
+            // Pause logic
+            pauseBtn.onclick = () => {
+                if (phase === 'gameover' || phase === 'story' || phase === 'idle' || !isValid()) return;
+                togglePause();
+            };
+
+            resumeBtn.onclick = () => {
+                if (isValid()) togglePause();
+            };
+
+            settingsBtn.onclick = () => {
+                if (!isValid()) return;
+                settingsOverlay.classList.add('visible');
+            };
+
+            settingsCloseBtn.onclick = () => {
+                if (isValid()) settingsOverlay.classList.remove('visible');
+            };
+
+            soundToggle.onclick = () => {
+                soundEnabled = !soundEnabled;
+                soundToggle.classList.toggle('on', soundEnabled);
+                soundToggle.setAttribute('aria-pressed', String(soundEnabled));
+            };
+
+            volumeSlider.oninput = () => {
+                soundVolume = Number(volumeSlider.value) / 100;
+                volumeValue.textContent = `${volumeSlider.value}%`;
+                if (audioGain) audioGain.gain.value = soundVolume;
+            };
+
+            function togglePause() {
+                isPaused = !isPaused;
+                if (isPaused) {
+                    previousPhase = phase;
+                    phase = 'paused';
+                    pauseOverlay.classList.add('visible');
+                } else {
+                    phase = previousPhase;
+                    pauseOverlay.classList.remove('visible');
+                }
+            }
+
+            function showStoryScene() {
+                const soul = soulData[currentChapter];
+                if (!soul || !isValid()) return;
+
+                phase = 'story';
+                playRestorationSound();
+                
+                storyTitleEl.textContent = `${soul.name}'s Memory Restored`;
+                storyTextEl.textContent = soul.finalStory;
+                
+                const asset = lib.getAsset(soul.avatar);
+                if (asset) {
+                    storyAvatarEl.style.backgroundImage = `url(${asset.url})`;
+                }
+
+                storyOverlay.classList.add('visible');
+            }
+
+            function advanceChapter() {
+                if (!isValid()) return;
+                storyOverlay.classList.remove('visible');
+                
+                if (currentChapter < 5) {
+                    currentChapter++;
+                    levelsCompletedInChapter = 0;
+                    currentLevel = (currentChapter - 1) * config.levelsPerChapter + 1;
+                    showSoulIntro();
+                } else {
+                    // Game Complete
+                    finalScoreEl.textContent = `All Souls Saved! Final Score: ${score}`;
+                    gameOverOverlay.querySelector('h2').textContent = "Journey Complete";
+                    gameOverOverlay.querySelector('p').textContent = "The Traveler has restored all memories.";
+                    gameOverOverlay.classList.add('visible');
+                    phase = 'gameover';
+                }
+            }
+
+            async function showInstructions() {
+                if (!isValid()) return;
+                if (instructionsSeen) {
+                    showSoulIntro();
+                    return;
+                }
+
+                phase = 'story';
+                instructionsOverlay.classList.add('visible');
+                
+                const stepIds = ['step-1', 'step-2', 'step-3'];
+                for (let i = 0; i < stepIds.length; i++) {
+                    await new Promise(r => safeTimeout(r, 600));
+                    if (!isValid()) return;
+                    document.getElementById(stepIds[i]).classList.add('show');
+                }
+            }
+
+            instructionsBtn.onclick = () => {
+                if (!isValid()) return;
+                instructionsOverlay.classList.remove('visible');
+                instructionsSeen = true;
+                showSoulIntro();
+            };
+
+            function showSoulIntro() {
+                if (!isValid()) return;
+                phase = 'story';
+                const soul = soulData[currentChapter];
+                
+                introSoulName.textContent = soul.name;
+                introSoulName.style.color = soul.theme;
+                introDialogueText.textContent = soul.introDialogue;
+                
+                const travelerAsset = lib.getAsset('traveler_avatar');
+                if (travelerAsset) {
+                    introTravelerAvatar.style.backgroundImage = `url(${travelerAsset.url})`;
+                }
+                
+                const soulAsset = lib.getAsset(soul.avatar);
+                if (soulAsset) {
+                    introSoulAvatar.style.backgroundImage = `url(${soulAsset.url})`;
+                }
+                
+                soulIntroOverlay.classList.add('visible');
+            }
+
+            soulIntroBtn.onclick = () => {
+                if (!isValid()) return;
+                soulIntroOverlay.classList.remove('visible');
+                if (levelsCompletedInChapter >= config.levelsPerChapter) {
+                    advanceChapter();
+                    return;
+                }
+                safeTimeout(startLevel, 500);
+            };
+
+            // Introduction logic
+            async function showIntroduction() {
+                if (!isValid() || introOverlay.dataset.running === 'true') return;
+                introOverlay.dataset.running = 'true';
+                
+                phase = 'story';
+                introOverlay.classList.add('visible');
+                
+                const asset = lib.getAsset('traveler_avatar');
+                if (asset) {
+                    travelerImgEl.style.backgroundImage = `url(${asset.url})`;
+                }
+
+                const texts = [
+                    "Some memories disappear...",
+                    "Some memories are forgotten...",
+                    "And some memories are waiting to be found.",
+                    "A Traveler arrives at the edge of the memory void."
+                ];
+
+                for (let i = 0; i < texts.length; i++) {
+                    if (!isValid() || introOverlay.dataset.running !== 'true') break;
+                    introTextEl.classList.remove('show');
+                    await new Promise(r => safeTimeout(r, 800));
+                    if (!isValid() || introOverlay.dataset.running !== 'true') break;
+                    introTextEl.textContent = texts[i];
+                    introTextEl.classList.add('show');
+                    await new Promise(r => safeTimeout(r, 2500));
+                    
+                    if (i === 2 && isValid()) {
+                        travelerContainer.classList.add('show');
+                    }
+                }
+
+                if (isValid() && introOverlay.dataset.running === 'true') {
+                    startJourneyBtn.classList.add('show');
+                }
+            }
+
+            startJourneyBtn.onclick = () => {
+                if (!isValid()) return;
+                introOverlay.dataset.running = 'false';
+                introOverlay.classList.remove('visible');
+                safeTimeout(showInstructions, 1000);
+            };
+
+            // Continue button logic
+            continueBtn.onclick = () => {
+                advanceChapter();
+            };
+
+            function startLevel() {
+                if (!isValid()) return;
+                hideMessage();
+                gameOverOverlay.classList.remove('visible');
+                currentSequence = generateSequence();
+                showLevel();
+                updateSoulDisplay();
+                safeTimeout(() => playSequence(), 800);
+            }
+
+            // Restart button
+            restartBtn.onclick = () => {
+                if (!isValid()) return;
+                lives = config.startingLives;
+                score = 0;
+                currentLevel = 1;
+                currentChapter = 1;
+                levelsCompletedInChapter = 0;
+                gameOverOverlay.querySelector('h2').textContent = "Memory Lost";
+                updateLives();
+                updateScore();
+                updateSoulDisplay();
+                startLevel();
+            };
+
+            // Show game parameters
+            lib.showGameParameters({
+                name: 'Memory Settings',
+                params: {
+                    'Difficulty': {
+                        key: 'difficultyPreset',
+                        type: 'dropdown',
+                        options: [
+                            { label: 'Easy', value: 'easy' },
+                            { label: 'Normal', value: 'normal' },
+                            { label: 'Hard', value: 'hard' }
+                        ]
+                    },
+                    'Starting Lives': {
+                        key: 'startingLives',
+                        type: 'slider',
+                        min: 1,
+                        max: 5,
+                        step: 1
+                    },
+                    'Time Limit (s)': {
+                        key: 'timeLimit',
+                        type: 'slider',
+                        min: 3,
+                        max: 20,
+                        step: 1
+                    },
+                    'Particle Intensity': {
+                        key: 'particleIntensity',
+                        type: 'slider',
+                        min: 0,
+                        max: 2,
+                        step: 0.1
+                    },
+                    'Points per Circle': {
+                        key: 'pointsPerCircle',
+                        type: 'slider',
+                        min: 10,
+                        max: 500,
+                        step: 10
+                    },
+                    'Points per Sequence': {
+                        key: 'pointsPerSequence',
+                        type: 'slider',
+                        min: 100,
+                        max: 2000,
+                        step: 50
+                    },
+                    'Levels per Chapter': {
+                        key: 'levelsPerChapter',
+                        type: 'slider',
+                        min: 1,
+                        max: 10,
+                        step: 1
+                    },
+                    'Sequence Length (Start)': {
+                        key: 'sequenceLength',
+                        type: 'slider',
+                        min: 1,
+                        max: 10,
+                        step: 1
+                    },
+                    'Animation Base Speed (ms)': {
+                        key: 'animationSpeed',
+                        type: 'slider',
+                        min: 200,
+                        max: 1500,
+                        step: 50
+                    },
+                    'Pause Base Between (ms)': {
+                        key: 'pauseBetween',
+                        type: 'slider',
+                        min: 100,
+                        max: 1000,
+                        step: 50
+                    }
+                }
+            });
+
+            // Initialize
+            buildCircles();
+            updateLives();
+            updateScore();
+            updateSoulDisplay();
+
+            if (mode === 'edit') {
+                showLevel();
+                showMessage('Edit Mode — Adjust settings', '');
+                levelIndicatorEl.className = 'level-indicator visible';
+                updateSoulDisplay();
+
+                // Preload sounds for edit mode demo too
+                const audioToLoad = [
+                    'circle_sound_red', 'circle_sound_blue', 'circle_sound_green',
+                    'circle_sound_yellow', 'circle_sound_purple', 'circle_sound_orange',
+                    'soul_mira'
+                ];
+                Promise.all(audioToLoad.map(id => {
+                    const asset = lib.getAsset(id);
+                    if (asset && asset.type === 'audio') return loadAudio(id);
+                    return Promise.resolve();
+                }));
+
+                // Demo glow cycle in edit mode
+                let demoIndex = 0;
+                window.lostSoulsInterval = setInterval(() => {
+                    if (mode !== 'edit') return;
+                    const el = circleElements[demoIndex];
+                    if (!el) return;
+                    el.classList.add('glow');
+                    playCircleSound(demoIndex);
+                    setTimeout(() => el.classList.remove('glow'), config.animationSpeed);
+                    demoIndex = (demoIndex + 1) % 6;
+                }, config.animationSpeed + config.pauseBetween + 200);
+            } else {
+                // Preload all audio before starting
+                const assetsToLoad = [
+                    'circle_sound_red', 'circle_sound_blue', 'circle_sound_green',
+                    'circle_sound_yellow', 'circle_sound_purple', 'circle_sound_orange',
+                    'success_sound', 'failure_sound', 'memory_restoration_sound',
+                    'traveler_avatar'
+                ];
+                
+                showMessage('Loading memories...', '');
+                Promise.all(assetsToLoad.map(id => {
+                    const asset = lib.getAsset(id);
+                    if (asset && asset.type === 'audio') return loadAudio(id);
+                    return Promise.resolve();
+                })).then(() => {
+                    if (isValid()) safeTimeout(showIntroduction, 1000);
+                });
+            }
+        }
+    </script>
+</body>
+</html>
